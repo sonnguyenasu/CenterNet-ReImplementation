@@ -1,2 +1,2 @@
 # CenterNet-ReImplementation
-CenterNet Reimplementation with simple pytorch writing style
+CenterNet Reimplementation  with simple code writing style
