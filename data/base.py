@@ -61,7 +61,7 @@ class CustomDataset(Base):
         return center
 
     def _convert_box_to_center_mask(self, boxes, height, width):
-        center_mask = self.gaussian_radius((height//4,width//4))/3#np.zeros((height//4, width//4, self.num_class))
+        center_mask = np.zeros((height//4, width//4, self.num_class))
         intended_value = np.zeros((height//4, width//4))
 
         x = np.arange(width//4)
@@ -69,7 +69,7 @@ class CustomDataset(Base):
         index_x, index_y = np.meshgrid(x, y)
         centers = self._convert_box_to_center(boxes)
         for center in centers:
-            std = np.sqrt(center[1]**2+center[2]**2)/6
+            std = self.gaussian_radius((height//4,width//4))/3#np.sqrt(center[1]**2+center[2]**2)/6
             intended_value[:, :] = np.exp(-((index_x - center[1])**2 +
                                             (index_y-center[2])**2)/(2*std**2))
             center_mask[:, :, center[0]] = np.where(
@@ -93,8 +93,8 @@ class CustomDataset(Base):
 
     def _resize(self, img, boxes):
         height, width = img.shape[:2]
-        new_height = height - (height % 4)
-        new_width = width - (width % 4)
+        new_height = 800#height - (height % 4)
+        new_width = 1024#width - (width % 4)
         boxes = [[int(box[0]), int(box[1]*new_width),
                   int(box[2] * new_height), int(box[3]*new_width),
                   int(box[4]*new_height)] for box in boxes]
@@ -128,8 +128,8 @@ if __name__ == '__main__':
     from torch.utils.data import DataLoader
     import matplotlib.pyplot as plt
     from util import draw, get_center_from_center_mask
-    ds = CustomDataset('../datasets/train/images',
-                       '../datasets/train/labels', num_class=6)
+    ds = CustomDataset('../train/images',
+                       '../train/labels', num_class=6)
     sample_loader = DataLoader(ds, batch_size=1, shuffle=True)
     for _ in range(5):
         img, center_mask, offset_mask, size_mask, centers = next(
@@ -155,10 +155,10 @@ if __name__ == '__main__':
         ax[1, 2].imshow(center_mask[0, :, :, 5], cmap='gray')
         ax[2, 0].imshow(imag[:, :, ::-1])  # [0, :, :, :])
         #ax[2, 1].imshow(img[0, :, :, :])
-        ax[2, 1].imshow(offset_mask[0, :, :, 0], cmap='gray')
-        ax[2, 2].imshow(offset_mask[0, :, :, 1], cmap='gray')
+        ax[2, 1].imshow(size_mask[0, :, :, 0], cmap='gray')
+        ax[2, 2].imshow(size_mask[0, :, :, 1], cmap='gray')
 
         #img = img.astype('uint8')
 
         #plt.imshow(img[:, :, 0], cmap='gray')
-        plt.show()
+        plt.savefig('log.jpg')
