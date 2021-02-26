@@ -80,26 +80,31 @@ class CustomDataset(Base):
     def _get_offset_mask(self, boxes, height, width):
         offset_mask = np.zeros((height//4, width//4, 2))
         for box in boxes:
-            offset_mask[box[1]//4, box[2]//4, 0] = box[1]-4*box[1]//4
-            offset_mask[box[1]//4, box[2]//4, 1] = box[2]-4*box[2]//4
+          try:
+            offset_mask[box[2]//4, box[1]//4, 0] = box[1]-4*box[1]//4
+            offset_mask[box[2]//4, box[1]//4, 1] = box[2]-4*box[2]//4
+          except:
+            print(boxes)
         return offset_mask
 
     def _get_size_mask(self, boxes, height, width):
         size_mask = np.zeros((height//4, width//4, 2))
         for box in boxes:
-            size_mask[box[1]//4, box[2]//4, 0] = box[3]  # width offset
-            size_mask[box[1]//4, box[2]//4, 1] = box[4]  # height offset
+            size_mask[box[2]//4, box[1]//4, 0] = box[3]  # width offset
+            size_mask[box[2]//4, box[1]//4, 1] = box[4]  # height offset
         return size_mask
 
     def _resize(self, img, boxes):
         height, width = img.shape[:2]
         new_height = 800#height - (height % 4)
         new_width = 1024#width - (width % 4)
-        boxes = [[int(box[0]), int(box[1]*new_width),
+        res = []
+        for box in boxes:
+          res.append([int(box[0]), int(box[1]*new_width),
                   int(box[2] * new_height), int(box[3]*new_width),
-                  int(box[4]*new_height)] for box in boxes]
+                  int(box[4]*new_height)])
         img = cv2.resize(img, (new_width, new_height))
-        return img, boxes
+        return img, res
 
     def __getitem__(self, idx):
         img = cv2.imread(self.images[idx])
@@ -111,6 +116,7 @@ class CustomDataset(Base):
             dat = [float(num) for num in label.split(' ')]
             boxes.append(dat)
         img, boxes = self._resize(img, boxes)
+        
         height, width = img.shape[:2]
         center_mask = self._convert_box_to_center_mask(boxes, height, width)
         offset_mask = self._get_offset_mask(boxes, height, width)
@@ -121,7 +127,7 @@ class CustomDataset(Base):
             torch.Tensor(center_mask).permute(2, 0, 1),\
             torch.Tensor(offset_mask).permute(2, 0, 1), \
             torch.Tensor(size_mask).permute(2, 0, 1), \
-            centers  # torch.Tensor(centers)
+            #torch.Tensor(centers)  # torch.Tensor(centers)
 
 
 if __name__ == '__main__':
@@ -130,33 +136,36 @@ if __name__ == '__main__':
     from util import draw, get_center_from_center_mask
     ds = CustomDataset('../train/images',
                        '../train/labels', num_class=6)
-    sample_loader = DataLoader(ds, batch_size=1, shuffle=True)
-    for _ in range(5):
-        img, center_mask, offset_mask, size_mask, centers = next(
+    sample_loader = DataLoader(ds, batch_size=4, shuffle=True)
+    img_, center_mask_, offset_mask_, size_mask_, centers_ = next(
             iter(sample_loader))
-        img = (255*img.permute(0, 2, 3, 1)).long()
-        center_mask = center_mask.permute(0, 2, 3, 1).numpy()
-        size_mask = size_mask.permute(0, 2, 3, 1).numpy()
-        offset_mask = offset_mask.permute(0, 2, 3, 1).numpy()
+    for i in range(4):
+        
+        img = (255*img_[i:i+1,:,:,:].permute(0, 2, 3, 1)).long().squeeze(0)
+        center_mask = center_mask_[i:i+1,:,:,:].permute(0, 2, 3, 1).numpy()
+        size_mask = size_mask_[i:i+1,:,:,:].permute(0, 2, 3, 1).numpy()
+        offset_mask = offset_mask_[i:i+1,:,:,:].permute(0, 2, 3, 1).numpy()
         #centers = get_center_from_center_mask(center_mask)
-
+        #centers = ce
+        centers=  centers_[i]
+        print(centers_[0][:,0])
         print(img.shape)
         print(center_mask.shape)
         print(offset_mask.shape)
         print(size_mask.shape)
-        imag = draw(img[0, :, :, :], centers,
+        imag = draw(img[:, :, :], centers,
                     offset_mask[0, :, :, :], size_mask[0, :, :, :])
         fig, ax = plt.subplots(3, 3)
-        ax[0, 0].imshow(center_mask[0, :, :, 0], cmap='gray')
-        ax[0, 1].imshow(center_mask[0, :, :, 1], cmap='gray')
-        ax[0, 2].imshow(center_mask[0, :, :, 2], cmap='gray')
-        ax[1, 0].imshow(center_mask[0, :, :, 3], cmap='gray')
-        ax[1, 1].imshow(center_mask[0, :, :, 4], cmap='gray')
-        ax[1, 2].imshow(center_mask[0, :, :, 5], cmap='gray')
+        ax[0, 0].imshow(center_mask[0,:, :, 0], cmap='gray')
+        ax[0, 1].imshow(center_mask[0,:, :, 1], cmap='gray')
+        ax[0, 2].imshow(center_mask[0,:, :, 2], cmap='gray')
+        ax[1, 0].imshow(center_mask[0,:, :, 3], cmap='gray')
+        ax[1, 1].imshow(center_mask[0,:, :, 4], cmap='gray')
+        ax[1, 2].imshow(center_mask[0,:, :, 5], cmap='gray')
         ax[2, 0].imshow(imag[:, :, ::-1])  # [0, :, :, :])
         #ax[2, 1].imshow(img[0, :, :, :])
-        ax[2, 1].imshow(size_mask[0, :, :, 0], cmap='gray')
-        ax[2, 2].imshow(size_mask[0, :, :, 1], cmap='gray')
+        ax[2, 1].imshow(size_mask[0,:, :, 0], cmap='gray')
+        ax[2, 2].imshow(size_mask[0,:, :, 1], cmap='gray')
 
         #img = img.astype('uint8')
 
