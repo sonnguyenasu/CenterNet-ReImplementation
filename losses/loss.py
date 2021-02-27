@@ -3,7 +3,7 @@ from torch import nn
 
 
 class Loss(nn.Module):
-    def __init__(self, l_focal=1, l_size=0.1, l_offset=1.0, alpha=2, beta=4):
+    def __init__(self, l_focal=1.0, l_size=0.1, l_offset=1.0, alpha=2, beta=4):
         super(Loss, self).__init__()
         self.l_size = l_size
         self.l_offset = l_offset
@@ -14,9 +14,9 @@ class Loss(nn.Module):
     def size_loss(self, pred, target):
         loss = 0
         pos_ids = 1-target.lt(1).float()
-        pred[pos_ids == 0] = 0
-
-        loss = torch.nn.functional.l1_loss(
+        pred = pred*pos_ids#[pos_ids == 0] = 0
+        #pred /= (target + 1e-4)
+        loss = torch.nn.functional.smooth_l1_loss(
             pred, target, size_average=False)
         num_pos = int(pos_ids.sum()/2)
         loss /= (num_pos+1e-4)
@@ -26,9 +26,9 @@ class Loss(nn.Module):
     def offset_loss(self, pred, target, pos_ids):
         loss = 0
         #pos_ids = 1-target.lt(1).float()
-        pred[pos_ids == 0] = 0
+        pred = pred*pos_ids# == 0] = 0
 
-        loss = torch.nn.functional.l1_loss(
+        loss = torch.nn.functional.smooth_l1_loss(
             pred, target, size_average=False)
         num_pos = int(pos_ids.sum()/2)
         loss /= (num_pos+1e-4)
@@ -39,8 +39,8 @@ class Loss(nn.Module):
         loss = 0
         neg_ids = target.lt(1).float()
         pos_ids = 1-neg_ids
-        pred[pred > 0.99] = 0.99
-        pred[pred < 0.01] = 0.01
+        pred = torch.where(pred > 0.99, torch.tensor(0.99,device='cuda'),pred)
+        pred = torch.where(pred < 0.01, torch.tensor(0.01,device='cuda'),pred)
         neg_weights = torch.pow(1-target, self.beta)
         pos_loss = torch.log(pred)*torch.pow(1-pred, self.alpha)*pos_ids
         neg_loss = torch.log(1-pred)*torch.pow(pred,
