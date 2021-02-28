@@ -4,15 +4,17 @@ from data.base import CustomDataset
 from model.CenterNet import CenterNet
 import torch
 from losses import Loss
+from collections import defaultdict 
 num_class = 2
 cnet = CenterNet(num_class=num_class).to('cuda')
-# cnet.load_state_dict(torch.load('model_final.pth'))
-optimizer = optim.SGD(cnet.parameters(),lr=0.001)
+#cnet.load_state_dict(torch.load('model_final.pth'))
+optimizer = optim.Adam(cnet.parameters(),lr=2e-4)
 criterion = Loss().to('cuda')
 ds = CustomDataset('../train/images',
                    '../train/labels', num_class=num_class)
-sample_loader = DataLoader(ds, batch_size=32, shuffle=True)
+sample_loader = DataLoader(ds, batch_size=32, pin_memory=True, shuffle=True)
 EPOCH = 100
+losses = defaultdict(list)
 for e in range(EPOCH):
     running_loss,wh_loss,hm_loss,off_loss = 0,0,0,0
     for idx, (img, center_mask, offset_mask, size_mask) in enumerate(sample_loader):
@@ -38,8 +40,13 @@ for e in range(EPOCH):
         total_loss.backward()
         optimizer.step()
 
-        if idx % 25 == 24:
-            print(f"Epoch: {e+1}, iter {idx+1}: running loss: {running_loss/(25):.2f}, size_loss: {wh_loss/25:.2f}" +
-                  f', offset_loss: {off_loss/25:.2f}, center_loss: {hm_loss/25:.2f}')
+        if idx % 10 == 9:
+            print(f"Epoch: {e+1}, iter {idx+1}: running loss: {running_loss/(10):.2f}, size_loss: {wh_loss/10:.2f}" +
+                  f', offset_loss: {off_loss/10:.2f}, center_loss: {hm_loss/10:.2f}')
+            losses['total'].append(running_loss.item()/10)
+            losses['size'].append(wh_loss.item()/10)
+            losses['offset'].append(off_loss.item()/10)
+            losses['center'].append(hm_loss.item()/10)
             running_loss, hm_loss, wh_loss, off_loss = 0,0,0,0
-torch.save(cnet.state_dict(), 'model_final.pth')
+            torch.save(cnet.state_dict(), 'model_final.pth')
+    json.dump(losses, open('loss_log.json','w'))
