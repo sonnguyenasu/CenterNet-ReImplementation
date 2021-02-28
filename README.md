@@ -12,5 +12,14 @@ Some technical details that I found out when implementing the code:
 
 - The loss of size is big compare to the other two since width and height are not normalized (in my code), I wonder if in the paper they would use wh that are normalized or not?
 
-Todo: Trying to factorize the code, make it simpler to read
 
+****
+### Learning curve
+![image](images/learncurve.png)
+
+****
+### Some Visualization of the results on toy dataset of cats and dogs
+![image](images/ess.jpg)
+![image](images/res1_dog.jpg)
+![image](images/res2_dog.jpg)
+![image](images/res2_cat.jpg)
