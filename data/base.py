@@ -96,8 +96,8 @@ class CustomDataset(Base):
 
     def _resize(self, img, boxes):
         height, width = img.shape[:2]
-        new_height = 800#height - (height % 4)
-        new_width = 1024#width - (width % 4)
+        new_height = 416#height - (height % 4)
+        new_width = 416#width - (width % 4)
         res = []
         for box in boxes:
           res.append([int(box[0]), int(box[1]*new_width),
