@@ -11,7 +11,7 @@ optimizer = optim.SGD(cnet.parameters(),lr=0.001)
 criterion = Loss().to('cuda')
 ds = CustomDataset('../train/images',
                    '../train/labels', num_class=num_class)
-sample_loader = DataLoader(ds, batch_size=4, shuffle=True)
+sample_loader = DataLoader(ds, batch_size=32, shuffle=True)
 EPOCH = 100
 for e in range(EPOCH):
     running_loss,wh_loss,hm_loss,off_loss = 0,0,0,0
