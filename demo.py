@@ -22,10 +22,7 @@ ds = CustomDataset('../valid/images','../valid/labels',num_class=2)
 loader = DataLoader(ds,batch_size=1,shuffle=True)
 img, center_mask, _, _ = next(iter(loader))
 imga = img.to('cuda')
-predictions = model(imga)
-t = time.time()
 predictions = model(imga)#.to('cuda'))
-print(time.time()-t)
 predictions = predictions.cpu()
 center_predict, offset_predict, size_predict = torch.split(
             predictions, [2, 2, 2], 1)
@@ -47,7 +44,7 @@ try:
 except:
   imag = draw(img[:, :, :], centers,
                     offset_predict[0, :, :, :], size_predict[0, :, :, :])
-fig, ax = plt.subplots(2, 3)
+'''fig, ax = plt.subplots(2, 3)
 ax[0, 0].imshow(center_predict[0,:, :, 0], cmap='gray')
 ax[0, 1].imshow(center_predict[0,:, :, 1], cmap='gray')
 #ax[0, 2].imshow(center_predict[0,:, :, 2], cmap='gray')
@@ -58,5 +55,5 @@ ax[1, 0].imshow(imag[:, :, ::-1])  # [0, :, :, :])
 #ax[2, 1].imshow(img[0, :, :, :])
 ax[1, 1].imshow(size_predict[0,:, :, 0], cmap='gray')
 ax[1, 2].imshow(size_predict[0,:, :, 1], cmap='gray')
-plt.savefig('log.jpg')
-#cv2.imwrite('res.jpg',imag)
+plt.savefig('log.jpg')'''
+cv2.imwrite('res.jpg',imag)
